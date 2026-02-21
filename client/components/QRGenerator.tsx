@@ -41,7 +41,7 @@ export default function QRGenerator() {
   const logoSize = Math.round(size * 0.22);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 items-start">
+    <div className="flex flex-col lg:flex-row gap-5 lg:items-start">
       {/* Settings Panel */}
       <div className="w-full lg:w-72 shrink-0">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">

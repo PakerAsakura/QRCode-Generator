@@ -9,7 +9,18 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f7f8fa]">
-      <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10">
+
+        {/* Credit */}
+        <div className="flex justify-center mb-4">
+          <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-4 py-2 shadow-sm">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white text-[9px] font-bold">P</span>
+            </div>
+            <span className="text-xs text-gray-400">Made by</span>
+            <span className="text-xs font-semibold text-gray-700">Paker Asakura</span>
+          </div>
+        </div>
 
         {/* Tab Switcher */}
         <div className="flex justify-center mb-6">
@@ -38,17 +49,6 @@ export default function Home() {
         </div>
 
         {activeTab === 'simple' ? <QRGenerator /> : <DesignUploader />}
-
-        {/* Credit */}
-        <div className="flex justify-center mt-10">
-          <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-4 py-2 shadow-sm">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white text-[9px] font-bold">P</span>
-            </div>
-            <span className="text-xs text-gray-400">Made by</span>
-            <span className="text-xs font-semibold text-gray-700">Paker Asakura</span>
-          </div>
-        </div>
 
       </div>
     </main>

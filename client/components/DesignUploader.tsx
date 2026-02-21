@@ -19,81 +19,83 @@ export default function DesignUploader() {
   const [link, setLink] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
 
-  const handleLogoUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-    try {
-      const base64 = await fileToBase64(file);
-      setLogoUrl(base64);
-      toast.success("Logo added!");
-    } catch {
-      toast.error("Failed to load logo");
-    }
-  };
+  // Text overlay state
+  const [textContent, setTextContent] = useState("");
+  const [textPosition, setTextPosition] = useState({ x: 50, y: 50 });
+  const [textFontSize, setTextFontSize] = useState(32);
+  const [textColor, setTextColor] = useState("#ffffff");
+  const [textFont, setTextFont] = useState("Arial, sans-serif");
 
-  // Refs to avoid stale closures in document-level listeners
+  const FONTS = [
+    { label: "Arial",      value: "Arial, sans-serif" },
+    { label: "Poppins",    value: "'Poppins', sans-serif" },
+    { label: "Montserrat", value: "'Montserrat', sans-serif" },
+    { label: "Oswald",     value: "'Oswald', sans-serif" },
+    { label: "Bebas Neue", value: "'Bebas Neue', sans-serif" },
+    { label: "Playfair",   value: "'Playfair Display', serif" },
+    { label: "Georgia",    value: "Georgia, serif" },
+    { label: "Pacifico",   value: "'Pacifico', cursive" },
+    { label: "Dancing",    value: "'Dancing Script', cursive" },
+    { label: "Courier",    value: "'Courier New', monospace" },
+    { label: "Impact",     value: "Impact, sans-serif" },
+  ];
+
+  // QR drag/resize refs
   const isDraggingQR = useRef(false);
   const isResizingQR = useRef(false);
   const dragStart = useRef({ mouseX: 0, mouseY: 0, qrX: 0, qrY: 0 });
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, size: 0 });
   const qrPositionRef = useRef(qrPosition);
 
-  useEffect(() => {
-    qrPositionRef.current = qrPosition;
-  }, [qrPosition]);
+  // Text drag refs
+  const isDraggingText = useRef(false);
+  const textDragStart = useRef({ mouseX: 0, mouseY: 0, textX: 0, textY: 0 });
+  const textPositionRef = useRef(textPosition);
 
-  const handleFileUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
+  useEffect(() => { qrPositionRef.current = qrPosition; }, [qrPosition]);
+  useEffect(() => { textPositionRef.current = textPosition; }, [textPosition]);
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image file"); return; }
     try {
-      const base64 = await fileToBase64(file);
-      setDesignImage(base64);
-      setQRPosition({ x: 20, y: 20, size: 120 });
-      toast.success("Design uploaded!");
-    } catch {
-      toast.error("Failed to upload design");
-    }
+      setLogoUrl(await fileToBase64(file));
+      toast.success("Logo added!");
+    } catch { toast.error("Failed to load logo"); }
   };
 
+  const handleFileUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image file"); return; }
+    try {
+      setDesignImage(await fileToBase64(file));
+      setQRPosition({ x: 20, y: 20, size: 120 });
+      toast.success("Design uploaded!");
+    } catch { toast.error("Failed to upload design"); }
+  };
+
+  // QR drag/resize
   const startDrag = (clientX: number, clientY: number) => {
     const pos = qrPositionRef.current;
     isDraggingQR.current = true;
     dragStart.current = { mouseX: clientX, mouseY: clientY, qrX: pos.x, qrY: pos.y };
   };
-
   const startResize = (clientX: number, clientY: number) => {
     const pos = qrPositionRef.current;
     isResizingQR.current = true;
     resizeStart.current = { mouseX: clientX, mouseY: clientY, size: pos.size };
   };
+  const handleQRMouseDown = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); startDrag(e.clientX, e.clientY); };
+  const handleQRTouchStart = (e: React.TouchEvent) => { e.stopPropagation(); startDrag(e.touches[0].clientX, e.touches[0].clientY); };
+  const handleResizeMouseDown = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); startResize(e.clientX, e.clientY); };
+  const handleResizeTouchStart = (e: React.TouchEvent) => { e.stopPropagation(); startResize(e.touches[0].clientX, e.touches[0].clientY); };
 
-  const handleQRMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startDrag(e.clientX, e.clientY);
+  // Text drag
+  const startTextDrag = (clientX: number, clientY: number) => {
+    const pos = textPositionRef.current;
+    isDraggingText.current = true;
+    textDragStart.current = { mouseX: clientX, mouseY: clientY, textX: pos.x, textY: pos.y };
   };
-
-  const handleQRTouchStart = (e: React.TouchEvent) => {
-    e.stopPropagation();
-    const t = e.touches[0];
-    startDrag(t.clientX, t.clientY);
-  };
-
-  const handleResizeMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startResize(e.clientX, e.clientY);
-  };
-
-  const handleResizeTouchStart = (e: React.TouchEvent) => {
-    e.stopPropagation();
-    const t = e.touches[0];
-    startResize(t.clientX, t.clientY);
-  };
+  const handleTextMouseDown = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); startTextDrag(e.clientX, e.clientY); };
+  const handleTextTouchStart = (e: React.TouchEvent) => { e.stopPropagation(); startTextDrag(e.touches[0].clientX, e.touches[0].clientY); };
 
   const applyMove = useCallback((clientX: number, clientY: number) => {
     const img = imageRef.current;
@@ -110,27 +112,31 @@ export default function DesignUploader() {
         size: pos.size,
       });
     }
-
     if (isResizingQR.current) {
       const dx = clientX - resizeStart.current.mouseX;
       const newSize = Math.max(50, Math.min(resizeStart.current.size + dx, 300));
       setQRPosition({ x: pos.x, y: pos.y, size: newSize });
     }
+    if (isDraggingText.current) {
+      const dx = clientX - textDragStart.current.mouseX;
+      const dy = clientY - textDragStart.current.mouseY;
+      setTextPosition({
+        x: Math.max(0, Math.min(textDragStart.current.textX + dx, imgRect.width)),
+        y: Math.max(0, Math.min(textDragStart.current.textY + dy, imgRect.height)),
+      });
+    }
   }, [setQRPosition]);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    applyMove(e.clientX, e.clientY);
-  }, [applyMove]);
-
+  const handleMouseMove = useCallback((e: MouseEvent) => { applyMove(e.clientX, e.clientY); }, [applyMove]);
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDraggingQR.current && !isResizingQR.current) return;
+    if (!isDraggingQR.current && !isResizingQR.current && !isDraggingText.current) return;
     e.preventDefault();
     applyMove(e.touches[0].clientX, e.touches[0].clientY);
   }, [applyMove]);
-
   const handlePointerUp = useCallback(() => {
     isDraggingQR.current = false;
     isResizingQR.current = false;
+    isDraggingText.current = false;
   }, []);
 
   useEffect(() => {
@@ -160,21 +166,30 @@ export default function DesignUploader() {
       const scaleX = imgEl.naturalWidth / imgEl.getBoundingClientRect().width;
       const scaleY = imgEl.naturalHeight / imgEl.getBoundingClientRect().height;
 
+      await document.fonts.ready;
       const naturalImg = new Image();
       naturalImg.onload = () => {
         canvas.width = naturalImg.width;
         canvas.height = naturalImg.height;
         ctx.drawImage(naturalImg, 0, 0);
 
+        // Draw QR code
         const qrCanvas = containerRef.current?.querySelector("canvas") as HTMLCanvasElement;
         if (qrCanvas) {
-          ctx.drawImage(
-            qrCanvas,
-            qrPosition.x * scaleX,
-            qrPosition.y * scaleY,
-            qrPosition.size * scaleX,
-            qrPosition.size * scaleY,
-          );
+          ctx.drawImage(qrCanvas, qrPosition.x * scaleX, qrPosition.y * scaleY, qrPosition.size * scaleX, qrPosition.size * scaleY);
+        }
+
+        // Draw text
+        if (textContent.trim()) {
+          const scaledFontSize = textFontSize * scaleX;
+          ctx.font = `bold ${scaledFontSize}px ${textFont}`;
+          ctx.fillStyle = textColor;
+          ctx.textBaseline = "top";
+          ctx.shadowColor = "rgba(0,0,0,0.6)";
+          ctx.shadowBlur = scaledFontSize * 0.15;
+          ctx.shadowOffsetX = scaledFontSize * 0.03;
+          ctx.shadowOffsetY = scaledFontSize * 0.03;
+          ctx.fillText(textContent, textPosition.x * scaleX, textPosition.y * scaleY);
         }
 
         downloadFile(canvas.toDataURL("image/png"), generateFileName("design-qr"));
@@ -187,7 +202,7 @@ export default function DesignUploader() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 items-start">
+    <div className="flex flex-col lg:flex-row gap-5 lg:items-start">
       {/* Settings Panel */}
       <div className="w-full lg:w-72 shrink-0">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
@@ -198,41 +213,23 @@ export default function DesignUploader() {
 
           {/* Upload */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Upload Image
-            </label>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Upload Image</label>
             <div
               onDragEnter={(e) => { e.preventDefault(); setIsFileDragging(true); }}
               onDragLeave={(e) => { e.preventDefault(); setIsFileDragging(false); }}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsFileDragging(false);
-                if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
-              }}
+              onDrop={(e) => { e.preventDefault(); setIsFileDragging(false); if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]); }}
               onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
-                isFileDragging
-                  ? "border-purple-400 bg-purple-50"
-                  : designImage
-                  ? "border-purple-200 bg-purple-50/50"
-                  : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"
+                isFileDragging ? "border-purple-400 bg-purple-50"
+                : designImage ? "border-purple-200 bg-purple-50/50"
+                : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"
               }`}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])}
-                className="hidden"
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])} className="hidden" />
               {designImage ? (
                 <div className="flex items-center gap-3 text-left">
-                  <img
-                    src={designImage}
-                    alt="Preview"
-                    className="w-10 h-10 rounded-lg object-cover border border-purple-100 shrink-0"
-                  />
+                  <img src={designImage} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-purple-100 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-purple-600">Image uploaded</p>
                     <p className="text-xs text-gray-400">Click to replace</p>
@@ -252,11 +249,9 @@ export default function DesignUploader() {
             </div>
           </div>
 
-          {/* Link */}
+          {/* QR Code Link */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              QR Code Link
-            </label>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">QR Code Link</label>
             <input
               type="text"
               value={link}
@@ -266,69 +261,101 @@ export default function DesignUploader() {
             />
           </div>
 
-          {/* Logo Upload */}
+          {/* Center Logo */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Center Logo</label>
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
-            />
+            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
             {logoUrl ? (
               <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-100 rounded-xl">
-                <img
-                  src={logoUrl}
-                  alt="Logo"
-                  className="w-10 h-10 rounded-lg object-contain bg-white border border-gray-100 shrink-0"
-                />
+                <img src={logoUrl} alt="Logo" className="w-10 h-10 rounded-lg object-contain bg-white border border-gray-100 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-700">Logo applied</p>
-                  <button
-                    onClick={() => logoInputRef.current?.click()}
-                    className="text-xs text-purple-500 hover:text-purple-700"
-                  >
-                    Change
-                  </button>
+                  <button onClick={() => logoInputRef.current?.click()} className="text-xs text-purple-500 hover:text-purple-700">Change</button>
                 </div>
-                <button
-                  onClick={() => setLogoUrl("")}
-                  className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-full transition-colors text-lg leading-none shrink-0"
-                >
-                  ×
-                </button>
+                <button onClick={() => setLogoUrl("")} className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-full transition-colors text-lg leading-none shrink-0">×</button>
               </div>
             ) : (
-              <button
-                onClick={() => logoInputRef.current?.click()}
-                className="w-full py-3 border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50/50 rounded-xl text-xs text-gray-400 hover:text-purple-500 transition-all flex items-center justify-center gap-1.5"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+              <button onClick={() => logoInputRef.current?.click()} className="w-full py-3 border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50/50 rounded-xl text-xs text-gray-400 hover:text-purple-500 transition-all flex items-center justify-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 Add center logo (optional)
               </button>
             )}
           </div>
 
+          {/* Text Overlay */}
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Text Overlay</label>
+            <input
+              type="text"
+              value={textContent}
+              onChange={(e) => setTextContent(e.target.value)}
+              placeholder="Type your text here..."
+              className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all placeholder-gray-300"
+            />
+            {textContent.trim() && (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Font size</span>
+                    <span className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">{textFontSize}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="12"
+                    max="120"
+                    step="2"
+                    value={textFontSize}
+                    onChange={(e) => setTextFontSize(parseInt(e.target.value))}
+                    className="w-full accent-purple-600 h-1.5 cursor-pointer"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <span className="text-xs text-gray-400">Font</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {FONTS.map((f) => (
+                      <button
+                        key={f.value}
+                        onClick={() => setTextFont(f.value)}
+                        className={`px-2 py-1.5 rounded-lg text-xs border transition-all truncate ${
+                          textFont === f.value
+                            ? "border-purple-400 bg-purple-50 text-purple-700"
+                            : "border-gray-200 text-gray-600 hover:border-purple-200 hover:bg-gray-50"
+                        }`}
+                        style={{ fontFamily: f.value }}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-gray-400">Text color</span>
+                  <label className="flex items-center gap-2 cursor-pointer group mt-1">
+                    <div className="relative w-9 h-9 rounded-lg border-2 border-gray-200 group-hover:border-purple-300 overflow-hidden transition-colors shrink-0" style={{ backgroundColor: textColor }}>
+                      <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    </div>
+                    <span className="text-xs text-gray-500 font-mono">{textColor}</span>
+                  </label>
+                </div>
+                <button onClick={() => setTextContent("")} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Remove text</button>
+              </div>
+            )}
+          </div>
+
           {designImage && value.trim() && (
             <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2 text-center">
-              Drag QR to move · Corner handle to resize
+              Drag QR or text to move · Corner handle to resize QR
             </p>
           )}
 
           {/* Download */}
-          <button
-            onClick={handleDownload}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl transition-all shadow-sm"
-          >
+          <button onClick={handleDownload} className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
             Download with QR
           </button>
 
           {designImage && (
             <button
-              onClick={() => { setDesignImage(null); setLink(""); setValue(""); }}
+              onClick={() => { setDesignImage(null); setLink(""); setValue(""); setTextContent(""); setLogoUrl(""); }}
               className="w-full py-2 text-xs text-gray-400 hover:text-red-500 transition-colors"
             >
               Remove image
@@ -341,14 +368,7 @@ export default function DesignUploader() {
       <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-center min-h-96 p-4">
         {designImage ? (
           <div ref={containerRef} className="relative inline-block select-none">
-            <img
-              ref={imageRef}
-              src={designImage}
-              alt="Design"
-              draggable={false}
-              className="block max-w-full rounded-xl shadow-sm"
-              style={{ maxHeight: "72vh" }}
-            />
+            <img ref={imageRef} src={designImage} alt="Design" draggable={false} className="block max-w-full rounded-xl shadow-sm" style={{ maxHeight: "72vh" }} />
 
             {/* QR Code overlay */}
             {value.trim() && (
@@ -356,13 +376,7 @@ export default function DesignUploader() {
                 onMouseDown={handleQRMouseDown}
                 onTouchStart={handleQRTouchStart}
                 className="absolute cursor-move select-none"
-                style={{
-                  left: qrPosition.x,
-                  top: qrPosition.y,
-                  width: qrPosition.size,
-                  height: qrPosition.size,
-                  touchAction: "none",
-                }}
+                style={{ left: qrPosition.x, top: qrPosition.y, width: qrPosition.size, height: qrPosition.size, touchAction: "none" }}
               >
                 <div className="w-full h-full bg-white rounded-xl shadow-xl p-1 border-2 border-purple-500 ring-2 ring-white">
                   <QRCodeCanvas
@@ -370,28 +384,44 @@ export default function DesignUploader() {
                     size={qrPosition.size - 8}
                     level="H"
                     marginSize={0}
-                    imageSettings={logoUrl ? {
-                      src: logoUrl,
-                      height: Math.round((qrPosition.size - 8) * 0.22),
-                      width: Math.round((qrPosition.size - 8) * 0.22),
-                      excavate: true,
-                    } : undefined}
+                    imageSettings={logoUrl ? { src: logoUrl, height: Math.round((qrPosition.size - 8) * 0.22), width: Math.round((qrPosition.size - 8) * 0.22), excavate: true } : undefined}
                   />
                 </div>
-                {/* Resize handle */}
-                <div
-                  onMouseDown={handleResizeMouseDown}
-                  onTouchStart={handleResizeTouchStart}
-                  className="absolute bottom-0 right-0 w-4 h-4 bg-purple-600 hover:bg-purple-700 rounded-full cursor-se-resize border-2 border-white shadow-md"
-                  style={{ transform: "translate(50%, 50%)" }}
-                />
+                <div onMouseDown={handleResizeMouseDown} onTouchStart={handleResizeTouchStart} className="absolute bottom-0 right-0 w-4 h-4 bg-purple-600 hover:bg-purple-700 rounded-full cursor-se-resize border-2 border-white shadow-md" style={{ transform: "translate(50%, 50%)" }} />
               </div>
             )}
 
-            {!value.trim() && (
+            {/* Text overlay */}
+            {textContent.trim() && (
+              <div
+                onMouseDown={handleTextMouseDown}
+                onTouchStart={handleTextTouchStart}
+                className="absolute cursor-move select-none"
+                style={{ left: textPosition.x, top: textPosition.y, touchAction: "none" }}
+              >
+                <p
+                  style={{
+                    fontSize: textFontSize,
+                    color: textColor,
+                    fontFamily: textFont,
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                    textShadow: "0 1px 6px rgba(0,0,0,0.55)",
+                    lineHeight: 1.2,
+                    userSelect: "none",
+                  }}
+                >
+                  {textContent}
+                </p>
+                {/* Drag indicator */}
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border border-white shadow" />
+              </div>
+            )}
+
+            {!value.trim() && !textContent.trim() && (
               <div className="absolute inset-0 flex items-end justify-center pb-4 pointer-events-none">
                 <div className="bg-black/50 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
-                  Enter a link to place the QR code
+                  Enter a link or text to get started
                 </div>
               </div>
             )}
@@ -404,7 +434,7 @@ export default function DesignUploader() {
               </svg>
             </div>
             <p className="text-gray-500 font-medium text-sm">Upload an image to get started</p>
-            <p className="text-xs text-gray-400 mt-1">Then drag and resize the QR code anywhere on it</p>
+            <p className="text-xs text-gray-400 mt-1">Then add a QR code or text overlay</p>
           </div>
         )}
       </div>
